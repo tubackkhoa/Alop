@@ -19,7 +19,7 @@ Usage
 -----
 ### Setup
 - Install the dependencies: *npm install* or *yarn*
-
+- Import mysql script from scripts/alop.sql into phpMyadmin
 ### Development
 - Run Webpack development server: *npm start*
 - Point your browser to the server (e.g. http://localhost:7000) and begin development at ./src
