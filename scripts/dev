@@ -1,0 +1,1 @@
+cross-env PORT=$npm_package_config_DEV_PORT NODE_ENV=development nodemon -- webpack-dev-server.js

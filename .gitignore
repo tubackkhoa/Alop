@@ -1,0 +1,7 @@
+node_modules
+public/assets
+.sass-cache
+.DS_Store
+.idea/*
+.idea/workspace.xml
+*.log*

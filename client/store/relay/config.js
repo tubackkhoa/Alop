@@ -1,0 +1,129 @@
+import Relay from 'react-relay'
+import {
+  markRequestPending,
+  markRequestSuccess, 
+  markRequestFailed,
+} from 'store/actions/common'
+
+// import DefaultNetworkLayer from 'react-relay/lib/RelayDefaultNetworkLayer'
+import injectNetworkLayer from './network/injectNetworkLayer'
+
+import { setToast, forwardTo } from 'store/actions/common'
+
+import api from 'store/api'
+import * as authSelectors from 'store/selectors/auth'
+import { saveRefreshToken } from 'store/actions/auth'
+
+/**
+ * Get the promise from the request and
+ * register a dispatch event for when it
+ * resolves.
+ * @param  {RelayQuery|RelayMutation} request
+ * @param  {String} type    action type
+ */
+function registerResponseDispatch(request, requestKey, store) {
+  request.getPromise().then(({response}) => {
+    console.log('[RELAY-NETWORK] Response:', response)
+    store.dispatch(markRequestSuccess(requestKey))
+  }).catch(err => {
+    store.dispatch(markRequestFailed(err, requestKey))
+    // user has signed in but return unauthorized ?, just refresh for sure, only one
+    const token = authSelectors.getToken(store.getState())
+    if(token && token.refreshToken){
+      // tell user to wait
+      store.dispatch(setToast('Refreshing token... You should reload page for sure!'))
+      // try refresh token, then reload page ?
+      api.auth.refreshAccessToken(token.refreshToken)          
+        // it can return more such as user info, expired date ?
+        .then(({ token: newToken }) => {          
+          // call action creator to update
+          store.dispatch(saveRefreshToken(newToken))            
+        })
+        .catch(err => console.error('[client/store/relay/config.js] can not refresh token', err))
+    }    
+    
+  })
+}
+
+/**
+ * Parses the data from the request and builds
+ * an FSA-compliant action. Also registers
+ * @param  {RelayQuery|RelayMutation} request
+ * @param  {String} type    action type
+ * @return {Object}         FSA
+ */
+function createRequestAction(request, type, store) {  
+  const payload = parseRequestData(request)
+  const requestKey = type + '_' + (payload.ID || payload.name)
+  registerResponseDispatch(request, requestKey, store)
+  return markRequestPending(requestKey)
+}
+
+
+/**
+ * Queries metadata from mutations and
+ * queries, returns an object containing
+ * those values.
+ * @param  {RelayQuery|RelayMutation} request
+ * @return {Object}        request data
+ */
+function parseRequestData(request) {
+  const queryString = request.getQueryString()
+  const variables = request.getVariables()
+  let data = {
+    request,
+    queryString,
+    variables
+  }
+
+  if (request._mutation) {
+    data = {
+      ...data,
+      files: request.getFiles(),
+      name: request.getMutation().getCall().name
+    }
+  }
+
+  if (request._query) {
+    data = {
+      ...data,
+      ID: request.getID(),
+      name: request.getDebugName()
+    }
+  }
+  return data
+}
+
+/**
+ * Calls addNetworkSubscriber to register dispatchers
+ * when a mutation or query is processed in the
+ * network layer.
+ * @param {Relay.Environment} environment
+ * @param {Function}          dispatch    Store.dispatch
+ * we call this internal so no need to publish as sagas
+ */
+export function configureRelayWithStore(store) {
+  const {dispatch} = store
+  window.store = store
+  if (typeof dispatch !== 'function') {
+    throw new Error(
+      'RelayNetworkDispatch(...): you did not pass a dispatch function ' +
+      'as the second argument. RelayNetworkDispatch will be unable ' +
+      'to dispatch actions to your Redux store.'
+    )
+  }
+  // inject network
+  // Relay.injectNetworkLayer(new DefaultNetworkLayer(GRAPHQL_ENDPOINT))
+  injectNetworkLayer(store)
+
+  // we use this for custom tracking to redux, not like middle ware
+  Relay.Store.addNetworkSubscriber(
+    query => dispatch(
+      createRequestAction(query, 'relay_query', store)
+    ),
+    mutation => dispatch(
+      createRequestAction(mutation, 'relay_mutation', store)
+    ),
+  )
+}
+
