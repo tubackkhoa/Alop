@@ -13,8 +13,8 @@ import { Route, IndexRoute } from 'react-router'
 
 import Home from './frontend/containers/Home'
 import HomeBackend from './backend/containers/Home'
-// import PostIndex from './frontend/containers/Post/Index'
-// import PostShow from './frontend/containers/Post/Show'
+import PostIndex from './frontend/containers/Post/Index'
+import PostShow from './frontend/containers/Post/Show'
 // import ProjectIndex from './frontend/containers/Project/Index'
 import App from './shared/containers/App'
 import NotFound from './shared/containers/notFound'
@@ -58,22 +58,17 @@ const checkAuth = (store) => {
 export const Routes = (store) => (
   <Route path='/'>         
     <IndexRoute component={Home} />    
-    {
-    //   <Route path='/posts' component={PostIndex} queries={ViewerQueries} 
-    //   prepareParams={prepareTagParams} />
-    // <Route path='/posts/:id' component={PostShow} queries={ViewerQueries} />
-    // <Route path="/projects" component={ProjectIndex} queries={ViewerQueries} 
-    //   prepareParams={prepareTagParams} />
-    }
+    
+    <Route path='/posts' component={PostIndex} />
+    <Route path='/post/:id' component={PostShow} />
+    
+    
     <Route path='/login' component={Login}/>
 
     <Route onEnter={checkAuth(store)} path='/admin' component={App}>
       <IndexRoute component={HomeBackend} />
 
-      <Route path="author/edit" component={AuthorForm} 
-        // queries={ViewerQueries} 
-        // prepareParams={prepareAuthorParams(store)} 
-      />
+      <Route path="author/edit" component={AuthorForm}/>
 
 
       <Route path="/admin/sellposts" component={SellPostIndexBackend} />

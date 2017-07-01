@@ -1,97 +1,52 @@
-import React, { Component, PropTypes } from 'react'
-import Relay from 'react-relay'
+import React, { Component } from 'react'
+import {Card, CardActions, CardHeader, CardMedia, CardTitle, CardText} from 'material-ui/Card'
+import FlatButton from 'material-ui/FlatButton'
+import { Link } from 'react-router'
+import api from 'store/api'
 
-import Item from 'ui/frontend/components/Post/Indexes/Item'
-import Infinite from 'react-infinite'
-
-class PostIndex extends Component {
+export default class PostIndex extends Component {
 
   constructor(props) {
     super(props)
+  
     this.state = {
-      isInfiniteLoading: false,
+      posts: []
     }
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     document.title = "Posts" 
+    const ret = await api.newspost.getNewsPosts(1)
+    this.setState({posts: ret.rows})
   }
 
-  _handleLoad = () => {
-    const {viewer:{posts:{pageInfo}}, relay} = this.props
-
-    if (pageInfo.hasNextPage && !this.state.isInfiniteLoading) {
-      // mark loading
-      this.setState({
-        isInfiniteLoading: true
-      })
-
-      // get next 10 item
-      relay.setVariables({
-        first: relay.variables.first + 10,
-      }, ({ready, done, error, aborted}) => {
-        // wait ready to mark        
-        this.setState({isInfiniteLoading: !ready && !(done || error || aborted)})
-      })
-
-    }
+  renderRow = post=>{
+    return (      
+      <Card key={post.id} className="mb-40">       
+        <CardMedia
+          overlay={<CardTitle title={post.title} subtitle={post.description} />}
+        >          
+          <img src={post.image} alt="" />        
+        </CardMedia>                
+        <CardActions>
+          <FlatButton label="Like" />
+          <Link to={`/post/${post.id}`}>
+            <FlatButton label="View" />
+          </Link>
+        </CardActions>
+      </Card>
+    )
   }
+
 
   render() {  
-    const {viewer:{posts:{edges}}, relay} = this.props
-    const elementHeight = 100
+    const {posts} = this.state    
     return (
       <section>        
-        <h1 >Posts</h1>
-        <Infinite
-          infiniteLoadBeginEdgeOffset={500}
-          onInfiniteLoad={this._handleLoad}
-          containerHeight={elementHeight * relay.variables.first}
-          preloadBatchSize={Infinite.containerHeightScaleFactor(relay.variables.first)}
-          elementHeight={elementHeight}
-          isInfiniteLoading={this.state.isInfiniteLoading}
-          useWindowAsScrollContainer
-        >
-          {edges.map((post) => {
-            return <Item key={post.node.id} {...post.node} />
-          })}
-        </Infinite>
+        <h1 >Posts</h1>        
+        {posts.map(this.renderRow)}       
       </section>
     )
   }
 }
-
-export default Relay.createContainer(PostIndex, {
-
-  initialVariables: {
-    first: 10,      
-    tagId: null,
-    order: 'published_at DESC',  
-  },
-
-  fragments: {
-    viewer: () => Relay.QL`
-      fragment on Viewer {
-        id
-        posts(first: $first order: $order tagId: $tagId){
-          edges {
-            node {
-              id
-              title
-              lead_sentence
-              published_at
-              tags {
-                id
-                name
-              }
-            }
-          }
-          pageInfo {
-            hasNextPage           
-          }
-        }        
-      }
-    `
-  },
-})
 

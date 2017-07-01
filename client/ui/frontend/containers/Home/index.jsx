@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router'
 
 export default (props) => (
   <div className='frontend'>
@@ -12,7 +13,7 @@ export default (props) => (
         <div className='col-sm-6 text-left pl-20'>
           <ul className='list-app mt-40'>
             <li>Ứng dụng</li>
-            <li><a href='#'>- Cứu trợ xe</a></li>
+            <li><Link to="/posts">Cứu trợ xe</Link></li>
             <li><a href='#'>- Mua bán lốp cũ, mới</a></li>
             <li><a href='#'>- Vận tải 2 chiều</a></li>
           </ul>
